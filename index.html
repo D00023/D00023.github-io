@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信号塔守护者 - 混沌风暴</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            background: #0a0a1a;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 开场剧情界面 */
+        #storyScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 50%, #0a0a1a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            animation: fadeIn 2s forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .hologram-tower {
+            width: 280px;
+            height: 420px;
+            position: relative;
+            margin-bottom: 60px;
+        }
+
+        .tower-hologram {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, 
+                rgba(74, 158, 255, 0.8) 0%,
+                rgba(74, 158, 255, 0.4) 50%,
+                rgba(74, 158, 255, 0.1) 100%);
+            clip-path: polygon(50% 0%, 80% 30%, 70% 100%, 30% 100%, 20% 30%);
+            animation: hologramPulse 2s infinite, hologramFloat 3s ease-in-out infinite;
+            box-shadow: 0 0 50px rgba(74, 158, 255, 0.5);
+        }
+
+        @keyframes hologramPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes hologramFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .hologram-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(74, 158, 255, 0.3) 2px,
+                rgba(74, 158, 255, 0.3) 4px
+            );
+            animation: scanline 4s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .dialogue-box {
+            max-width: 900px;
+            width: 80%;
+            padding: 50px 60px;
+            background: rgba(10, 20, 40, 0.95);
+            border: 3px solid rgba(74, 158, 255, 0.6);
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(74, 158, 255, 0.5);
+            position: relative;
+        }
+
+        .dialogue-box::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #4a9eff, transparent, #4a9eff);
+            border-radius: 15px;
+            z-index: -1;
+            opacity: 0.5;
+            animation: borderGlow 2s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        .speaker-name {
+            color: #4a9eff;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            text-shadow: 0 0 15px rgba(74, 158, 255, 0.6);
+        }
+
+        .dialogue-text {
+            color: #fff;
+            font-size: 24px;
+            line-height: 2;
+            min-height: 150px;
+        }
+
+        .dialogue-text.typing::after {
+            content: '|';
+            animation: blink 0.7s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .chaos-text {
+            color: #ff4444;
+            text-shadow: 0 0 20px #ff4444, 2px 2px 4px rgba(0,0,0,0.8);
+            font-family: 'Orbitron', sans-serif;
+            animation: chaosGlitch 0.3s infinite;
+        }
+
+        @keyframes chaosGlitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(2px, -2px); }
+            60% { transform: translate(-2px, -2px); }
+            80% { transform: translate(2px, 2px); }
+        }
+
+        .next-btn {
+            margin-top: 40px;
+            padding: 20px 70px;
+            font-size: 26px;
+            background: linear-gradient(135deg, #4a9eff, #0066cc);
+            color: #fff;
+            border: none;
+            border-radius: 35px;
+            cursor: pointer;
+            box-shadow: 0 6px 30px rgba(74, 158, 255, 0.5);
+            transition: all 0.3s;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: bold;
+        }
+
+        .next-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 40px rgba(74, 158, 255, 0.7);
+        }
+
+        /* 开始界面 */
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a3e 0%, #0a0a1a 100%);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        #startScreen.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 56px;
+            color: #fff;
+            text-shadow: 0 0 20px #4a9eff, 0 0 40px #4a9eff, 0 0 60px #4a9eff;
+            margin-bottom: 20px;
+            animation: titlePulse 2s infinite;
+            letter-spacing: 5px;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); text-shadow: 0 0 20px #4a9eff, 0 0 40px #4a9eff; }
+            50% { transform: scale(1.05); text-shadow: 0 0 30px #4a9eff, 0 0 60px #4a9eff, 0 0 80px #4a9eff; }
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #aaa;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .keyGuide {
+            display: flex;
+            gap: 25px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .keyItem {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.3s;
+        }
+
+        .keyItem:hover {
+            transform: translateY(-5px);
+        }
+
+        .keyBox {
+            width: 65px;
+            height: 65px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 26px;
+            font-weight: bold;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3), inset 0 2px 5px rgba(255,255,255,0.2);
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .keyBox.red { 
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.5);
+        }
+        .keyBox.green { 
+            background: linear-gradient(135deg, #44ff44, #00cc00);
+            box-shadow: 0 4px 20px rgba(68, 255, 68, 0.5);
+        }
+        .keyBox.blue { 
+            background: linear-gradient(135deg, #4444ff, #0000cc);
+            box-shadow: 0 4px 20px rgba(68, 68, 255, 0.5);
+        }
+        .keyBox.yellow { 
+            background: linear-gradient(135deg, #ffff44, #cccc00);
+            box-shadow: 0 4px 20px rgba(255, 255, 68, 0.5);
+        }
+        .keyBox.purple { 
+            background: linear-gradient(135deg, #ff44ff, #cc00cc);
+            box-shadow: 0 4px 20px rgba(255, 68, 255, 0.5);
+        }
+
+        .keyLabel {
+            color: #888;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .startBtn {
+            padding: 18px 60px;
+            font-size: 24px;
+            background: linear-gradient(135deg, #4a9eff, #0066cc);
+            color: #fff;
+            border: none;
+            border-radius: 35px;
+            cursor: pointer;
+            box-shadow: 0 4px 25px rgba(74, 158, 255, 0.5);
+            transition: all 0.3s;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .startBtn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 35px rgba(74, 158, 255, 0.7);
+        }
+
+        /* 游戏UI */
+        #gameUI {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .scoreBoard {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            color: #fff;
+            font-size: 28px;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 15px rgba(255,255,255,0.5);
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(74, 158, 255, 0.3);
+        }
+
+        .livesBoard {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .life {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            border-radius: 50%;
+            box-shadow: 0 0 15px #ff4444;
+            animation: heartbeat 1s infinite;
+        }
+
+        .life.lost {
+            background: #333;
+            box-shadow: none;
+            animation: none;
+        }
+
+        .life.warning {
+            animation: warningPulse 0.5s infinite;
+        }
+
+        @keyframes warningPulse {
+            0%, 100% { box-shadow: 0 0 15px #ff4444; transform: scale(1); }
+            50% { box-shadow: 0 0 30px #ff4444, 0 0 50px #ff4444; transform: scale(1.2); }
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .comboDisplay {
+            position: absolute;
+            top: 90px;
+            right: 25px;
+            color: #ffff44;
+            font-size: 36px;
+            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 20px #ffff44, 0 0 40px #ffff44;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .comboDisplay.show {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .phaseIndicator {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #4a9eff;
+            font-size: 20px;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 15px rgba(74, 158, 255, 0.5);
+            background: rgba(0,0,0,0.5);
+            padding: 8px 25px;
+            border-radius: 20px;
+            border: 1px solid rgba(74, 158, 255, 0.3);
+        }
+
+        .levelUpAlert {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 52px;
+            color: #ff4444;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 30px #ff4444, 0 0 60px #ff4444;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+            text-align: center;
+        }
+
+        .levelUpAlert.show {
+            animation: levelUpAnim 2.5s ease-out;
+        }
+
+        @keyframes levelUpAnim {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .tia-hint {
+            position: absolute;
+            bottom: 180px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #4a9eff;
+            font-size: 18px;
+            text-shadow: 0 0 10px rgba(74, 158, 255, 0.5);
+            opacity: 0;
+            transition: opacity 0.5s;
+            background: rgba(10, 20, 40, 0.8);
+            padding: 10px 25px;
+            border-radius: 25px;
+            border: 1px solid rgba(74, 158, 255, 0.3);
+        }
+
+        .tia-hint.show {
+            opacity: 1;
+        }
+
+        /* 按键提示 */
+        .keyHint {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            opacity: 0.8;
+        }
+
+        .keyHintBox {
+            width: 55px;
+            height: 55px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: all 0.1s;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .keyHintBox.active {
+            transform: scale(0.9);
+            border-color: #fff;
+            box-shadow: 0 0 25px currentColor;
+        }
+
+        .keyHintBox.red { background: rgba(255, 68, 68, 0.4); }
+        .keyHintBox.green { background: rgba(68, 255, 68, 0.4); }
+        .keyHintBox.blue { background: rgba(68, 68, 255, 0.4); }
+        .keyHintBox.yellow { background: rgba(255, 255, 68, 0.4); }
+        .keyHintBox.purple { background: rgba(255, 68, 255, 0.4); }
+
+        .keyHintBox.locked {
+            opacity: 0.3;
+            position: relative;
+        }
+
+        .keyHintBox.locked::after {
+            content: '🔒';
+            position: absolute;
+            font-size: 20px;
+        }
+
+        /* 结束界面 */
+        #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #gameOverScreen.show {
+            display: flex;
+        }
+
+        .gameOverTitle {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 52px;
+            color: #ff4444;
+            text-shadow: 0 0 20px #ff4444, 0 0 40px #ff4444;
+            margin-bottom: 30px;
+        }
+
+        .gameOverTitle.victory {
+            color: #44ff44;
+            text-shadow: 0 0 20px #44ff44, 0 0 40px #44ff44;
+        }
+
+        .finalScore {
+            font-size: 40px;
+            color: #fff;
+            margin-bottom: 20px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .stats {
+            display: flex;
+            gap: 50px;
+            margin-bottom: 30px;
+            color: #aaa;
+            font-size: 22px;
+        }
+
+        .recordMessage {
+            font-size: 28px;
+            color: #ffff44;
+            text-shadow: 0 0 20px #ffff44;
+            margin-bottom: 30px;
+            animation: glow 1s infinite alternate;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .specialTitle {
+            font-size: 36px;
+            color: #ff44ff;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 30px #ff44ff, 0 0 60px #ff44ff;
+            margin-bottom: 20px;
+            animation: titleGlow 1.5s infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 30px #ff44ff; }
+            to { text-shadow: 0 0 50px #ff44ff, 0 0 80px #ff44ff; }
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px #ffff44; }
+            to { text-shadow: 0 0 40px #ffff44, 0 0 60px #ffff44; }
+        }
+
+        .btnGroup {
+            display: flex;
+            gap: 25px;
+        }
+
+        .btn {
+            padding: 18px 45px;
+            font-size: 20px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: bold;
+        }
+
+        .btn.restart {
+            background: linear-gradient(135deg, #44ff44, #00cc00);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(68, 255, 68, 0.4);
+        }
+
+        .btn.menu {
+            background: linear-gradient(135deg, #666, #333);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(100, 100, 100, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 30px rgba(255,255,255,0.3);
+        }
+
+        /* 剧情对话框（游戏中） */
+        .inGameDialogue {
+            position: absolute;
+            bottom: 250px;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 600px;
+            padding: 20px 30px;
+            background: rgba(10, 20, 40, 0.9);
+            border: 2px solid rgba(74, 158, 255, 0.5);
+            border-radius: 15px;
+            color: #fff;
+            font-size: 16px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 50;
+        }
+
+        .inGameDialogue.show {
+            opacity: 1;
+        }
+
+        .inGameDialogue.chaos {
+            border-color: rgba(255, 68, 68, 0.5);
+            background: rgba(40, 10, 10, 0.9);
+        }
+
+        .inGameDialogue.chaos .speaker {
+            color: #ff4444;
+        }
+
+        .inGameDialogue .speaker {
+            color: #4a9eff;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        /* 胜利结局特殊画面 */
+        #victoryScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #1a3a6e 0%, #4a9eff 50%, #87ceeb 100%);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 150;
+            opacity: 0;
+            transition: opacity 2s;
+        }
+
+        #victoryScreen.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .victoryTower {
+            width: 250px;
+            height: 400px;
+            background: linear-gradient(180deg, 
+                rgba(255, 255, 255, 0.9) 0%,
+                rgba(74, 158, 255, 0.8) 50%,
+                rgba(74, 158, 255, 0.4) 100%);
+            clip-path: polygon(50% 0%, 80% 30%, 70% 100%, 30% 100%, 20% 30%);
+            animation: victoryGlow 2s infinite;
+            margin-bottom: 40px;
+        }
+
+        @keyframes victoryGlow {
+            0%, 100% { 
+                box-shadow: 0 0 50px rgba(255, 255, 255, 0.8), 0 0 100px rgba(74, 158, 255, 0.6);
+                filter: brightness(1);
+            }
+            50% { 
+                box-shadow: 0 0 100px rgba(255, 255, 255, 1), 0 0 150px rgba(74, 158, 255, 0.8);
+                filter: brightness(1.3);
+            }
+        }
+
+        .victoryText {
+            font-size: 32px;
+            color: #fff;
+            text-align: center;
+            max-width: 700px;
+            line-height: 1.8;
+            text-shadow: 0 0 20px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+        }
+
+        /* 混沌特效覆盖层 */
+        #chaosOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 1s;
+            background: radial-gradient(circle at center, transparent 30%, rgba(255, 0, 0, 0.1) 100%);
+        }
+
+        #chaosOverlay.active {
+            opacity: 1;
+            animation: chaosPulse 2s infinite;
+        }
+
+        @keyframes chaosPulse {
+            0%, 100% { background: radial-gradient(circle at center, transparent 30%, rgba(255, 0, 0, 0.1) 100%); }
+            50% { background: radial-gradient(circle at center, transparent 30%, rgba(255, 0, 0, 0.2) 100%); }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="chaosOverlay"></div>
+        
+        <!-- 开场剧情界面 -->
+        <div id="storyScreen">
+            <div class="hologram-tower">
+                <div class="tower-hologram"></div>
+                <div class="hologram-lines"></div>
+            </div>
+            
+            <div class="dialogue-box">
+                <div class="speaker-name">塔灵 TIA</div>
+                <div class="dialogue-text typing" id="storyText"></div>
+            </div>
+            
+            <button class="next-btn" id="storyBtn" onclick="nextStory()">继续</button>
+        </div>
+
+        <!-- 开始界面 -->
+        <div id="startScreen">
+            <h1 class="title">⚡ SIGNAL GUARDIAN ⚡</h1>
+            <p class="subtitle">风暴来袭，信号告急！<br>按对应按键消除信号波，守护信号塔！</p>
+            
+            <div class="keyGuide">
+                <div class="keyItem">
+                    <div class="keyBox red">W</div>
+                    <span class="keyLabel">红色</span>
+                </div>
+                <div class="keyItem">
+                    <div class="keyBox green">A</div>
+                    <span class="keyLabel">绿色</span>
+                </div>
+                <div class="keyItem">
+                    <div class="keyBox blue">S</div>
+                    <span class="keyLabel">蓝色</span>
+                </div>
+                <div class="keyItem" id="keyYellow" style="opacity: 0.3;">
+                    <div class="keyBox yellow">D</div>
+                    <span class="keyLabel">黄色 (100分解锁)</span>
+                </div>
+                <div class="keyItem" id="keyPurple" style="opacity: 0.3;">
+                    <div class="keyBox purple">␣</div>
+                    <span class="keyLabel">紫色 (300分解锁)</span>
+                </div>
+            </div>
+            
+            <button class="startBtn" onclick="startGame()">开始守护</button>
+        </div>
+
+        <!-- 游戏UI -->
+        <div id="gameUI">
+            <div class="scoreBoard">SCORE: <span id="score">0</span></div>
+            <div class="phaseIndicator" id="phaseIndicator">平静期</div>
+            <div class="livesBoard">
+                <div class="life" id="life1"></div>
+                <div class="life" id="life2"></div>
+                <div class="life" id="life3"></div>
+            </div>
+            <div class="comboDisplay" id="comboDisplay">COMBO ×<span id="comboCount">0</span></div>
+            <div class="levelUpAlert" id="levelUpAlert"></div>
+            
+            <div class="inGameDialogue" id="inGameDialogue">
+                <div class="speaker" id="dialogueSpeaker">塔灵 TIA</div>
+                <div id="dialogueText"></div>
+            </div>
+            
+            <div class="tia-hint" id="tiaHint"></div>
+            
+            <div class="keyHint">
+                <div class="keyHintBox red" id="hintW">W</div>
+                <div class="keyHintBox green" id="hintA">A</div>
+                <div class="keyHintBox blue" id="hintS">S</div>
+                <div class="keyHintBox yellow locked" id="hintD">D</div>
+                <div class="keyHintBox purple locked" id="hintSpace">␣</div>
+            </div>
+        </div>
+
+        <!-- 胜利结局画面 -->
+        <div id="victoryScreen">
+            <div class="victoryTower"></div>
+            <div class="specialTitle">🏆 风暴征服者 🏆</div>
+            <div class="victoryText">
+                奇迹……你净化了混沌风暴的核心！<br>
+                信号塔不仅没有倒下，反而获得了新的能量。<br>
+                真正的守护者，从不畏惧混乱。<br>
+                你已成为信号传说。
+            </div>
+            <div class="btnGroup">
+                <button class="btn restart" onclick="restartGame()">再次挑战</button>
+                <button class="btn menu" onclick="returnToMenu()">返回主界面</button>
+            </div>
+        </div>
+
+        <!-- 结束界面 -->
+        <div id="gameOverScreen">
+            <h2 class="gameOverTitle" id="gameOverTitle">⚠ 守护失败 ⚠</h2>
+            <div class="specialTitle" id="specialTitle" style="display: none;"></div>
+            <p class="finalScore">最终得分: <span id="finalScore">0</span></p>
+            <div class="stats">
+                <div>最高连击: <span id="maxCombo">0</span></div>
+                <div>历史最高: <span id="highScore">0</span></div>
+            </div>
+            <div class="recordMessage" id="recordMessage"></div>
+            <div class="btnGroup">
+                <button class="btn restart" onclick="restartGame()">再来一局</button>
+                <button class="btn menu" onclick="returnToMenu()">返回主界面</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏配置
+        const CONFIG = {
+            colors: {
+                red: '#ff4444',
+                green: '#44ff44',
+                blue: '#4444ff',
+                yellow: '#ffff44',
+                purple: '#ff44ff'
+            },
+            keys: {
+                'w': 'red',
+                'a': 'green',
+                's': 'blue',
+                'd': 'yellow',
+                ' ': 'purple'
+            },
+            towerRadius: 40,
+            waveSpawnRate: 2500,
+            baseSpeed: 1.5,
+            maxLives: 3
+        };
+
+        // 剧情文本
+        const STORY_LINES = [
+            {
+                speaker: "塔灵 TIA",
+                text: "守护者，你终于苏醒了。混沌风暴提前爆发，信号塔正遭受前所未有的攻击。"
+            },
+            {
+                speaker: "塔灵 TIA",
+                text: "我是塔灵 TIA，会协助你完成任务。你需要根据信号波的颜色，按下对应的按键，将它们全部消除。"
+            },
+            {
+                speaker: "塔灵 TIA",
+                text: "一旦漏掉太多，信号塔将离线，整个数字世界就会崩塌。你，准备好了吗？"
+            }
+        ];
+
+        // 游戏状态
+        let gameState = {
+            isPlaying: false,
+            score: 0,
+            lives: 3,
+            combo: 0,
+            maxCombo: 0,
+            level: 1,
+            phase: 'calm', // calm, intense, final
+            waves: [],
+            particles: [],
+            lastSpawnTime: 0,
+            towerGlow: 0,
+            shakeAmount: 0,
+            stormIntensity: 1,
+            unlockedColors: ['red', 'green', 'blue'],
+            dialogueShown: {},
+            isVictory: false
+        };
+
+        // 音频上下文
+        let audioContext = null;
+        let currentStoryIndex = 0;
+        let typingInterval = null;
+
+        // 初始化画布
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let centerX, centerY;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            centerX = canvas.width / 2;
+            centerY = canvas.height / 2;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 初始化音频
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // 播放音效
+        function playSound(type) {
+            if (!audioContext) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            switch(type) {
+                case 'hit':
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                case 'combo':
+                    oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.2);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    break;
+                case 'miss':
+                    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
+                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+                case 'levelUp':
+                    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.5);
+                    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    break;
+                case 'chaos':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.8);
+                    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.8);
+                    break;
+                case 'victory':
+                    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.2);
+                    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.4);
+                    oscillator.frequency.setValueAtTime(1046.50, audioContext.currentTime + 0.6);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.8);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.5);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 1.5);
+                    break;
+            }
+        }
+
+        // 打字机效果
+        function typeText(element, text, speed = 50) {
+            if (typingInterval) {
+                clearInterval(typingInterval);
+            }
+            
+            element.textContent = '';
+            element.classList.add('typing');
+            let index = 0;
+            
+            typingInterval = setInterval(() => {
+                if (index < text.length) {
+                    element.textContent += text.charAt(index);
+                    index++;
+                } else {
+                    clearInterval(typingInterval);
+                    element.classList.remove('typing');
+                }
+            }, speed);
+        }
+
+        // 剧情推进
+        function nextStory() {
+            if (currentStoryIndex < STORY_LINES.length) {
+                const line = STORY_LINES[currentStoryIndex];
+                document.querySelector('.speaker-name').textContent = line.speaker;
+                typeText(document.getElementById('storyText'), line.text);
+                currentStoryIndex++;
+                
+                if (currentStoryIndex >= STORY_LINES.length) {
+                    document.getElementById('storyBtn').textContent = '准备就绪';
+                }
+            } else {
+                // 剧情结束，显示开始界面
+                document.getElementById('storyScreen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('storyScreen').style.display = 'none';
+                    document.getElementById('startScreen').classList.add('show');
+                }, 500);
+            }
+        }
+
+        // 显示游戏内对话
+        function showInGameDialogue(speaker, text, isChaos = false, duration = 4000) {
+            const dialogue = document.getElementById('inGameDialogue');
+            const speakerEl = document.getElementById('dialogueSpeaker');
+            const textEl = document.getElementById('dialogueText');
+            
+            speakerEl.textContent = speaker;
+            textEl.textContent = text;
+            
+            if (isChaos) {
+                dialogue.classList.add('chaos');
+            } else {
+                dialogue.classList.remove('chaos');
+            }
+            
+            dialogue.classList.add('show');
+            
+            setTimeout(() => {
+                dialogue.classList.remove('show');
+            }, duration);
+        }
+
+        // 显示TIA提示
+        function showTiaHint(text, duration = 3000) {
+            const hint = document.getElementById('tiaHint');
+            hint.textContent = text;
+            hint.classList.add('show');
+            
+            setTimeout(() => {
+                hint.classList.remove('show');
+            }, duration);
+        }
+
+        // 信号波类
+        class Wave {
+            constructor(forcedColor = null, forcedSide = null) {
+                const colors = gameState.unlockedColors;
+                this.color = forcedColor || colors[Math.floor(Math.random() * colors.length)];
+                this.side = forcedSide !== null ? forcedSide : Math.floor(Math.random() * 4);
+                this.progress = 0;
+                this.speed = CONFIG.baseSpeed * (1 + (gameState.level - 1) * 0.1);
+                this.radius = 25;
+                
+                // 根据边确定起始位置
+                switch(this.side) {
+                    case 0:
+                        this.x = Math.random() * canvas.width;
+                        this.y = -50;
+                        break;
+                    case 1:
+                        this.x = canvas.width + 50;
+                        this.y = Math.random() * canvas.height;
+                        break;
+                    case 2:
+                        this.x = Math.random() * canvas.width;
+                        this.y = canvas.height + 50;
+                        break;
+                    case 3:
+                        this.x = -50;
+                        this.y = Math.random() * canvas.height;
+                        break;
+                }
+            }
+
+            update() {
+                const dx = centerX - this.x;
+                const dy = centerY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
+                }
+                
+                return distance > CONFIG.towerRadius;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.fillStyle = CONFIG.colors[this.color];
+                ctx.shadowColor = CONFIG.colors[this.color];
+                ctx.shadowBlur = 25;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 绘制按键提示
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Orbitron';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowBlur = 0;
+                const keyMap = { 'red': 'W', 'green': 'A', 'blue': 'S', 'yellow': 'D', 'purple': '␣' };
+                ctx.fillText(keyMap[this.color], this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        // 粒子效果类
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 12;
+                this.vy = (Math.random() - 0.5) * 12;
+                this.life = 1;
+                this.decay = 0.02;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                return this.life > 0;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // 创建粒子爆炸效果
+        function createExplosion(x, y, color) {
+            for (let i = 0; i < 20; i++) {
+                gameState.particles.push(new Particle(x, y, CONFIG.colors[color]));
+            }
+        }
+
+        // 绘制信号塔
+        function drawTower() {
+            ctx.save();
+            
+            const glowIntensity = gameState.towerGlow > 0 ? gameState.towerGlow : 0.3 + Math.sin(Date.now() / 500) * 0.1;
+            ctx.shadowColor = '#4a9eff';
+            ctx.shadowBlur = 40 + glowIntensity * 60;
+            
+            // 塔基
+            ctx.fillStyle = '#2a2a5a';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 35, centerY + 50);
+            ctx.lineTo(centerX + 35, centerY + 50);
+            ctx.lineTo(centerX + 25, centerY - 25);
+            ctx.lineTo(centerX - 25, centerY - 25);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 塔身
+            const gradient = ctx.createLinearGradient(centerX - 25, centerY - 25, centerX + 25, centerY + 50);
+            gradient.addColorStop(0, '#4a9eff');
+            gradient.addColorStop(0.5, '#2a5a9e');
+            gradient.addColorStop(1, '#1a3a6e');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 25, centerY - 25);
+            ctx.lineTo(centerX + 25, centerY - 25);
+            ctx.lineTo(centerX + 15, centerY - 70);
+            ctx.lineTo(centerX - 15, centerY - 70);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 塔顶
+            ctx.fillStyle = '#6abeff';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 15, centerY - 70);
+            ctx.lineTo(centerX + 15, centerY - 70);
+            ctx.lineTo(centerX, centerY - 95);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 信号发射效果
+            if (gameState.towerGlow > 0) {
+                ctx.strokeStyle = `rgba(74, 158, 255, ${gameState.towerGlow})`;
+                ctx.lineWidth = 4;
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY - 85, 35 + i * 25 + (Date.now() / 10) % 25, -Math.PI / 3, Math.PI / 3);
+                    ctx.stroke();
+                }
+                gameState.towerGlow -= 0.015;
+            }
+            
+            ctx.restore();
+        }
+
+        // 绘制风暴背景
+        function drawStorm() {
+            ctx.save();
+            
+            // 根据阶段改变背景
+            let bgColors = ['#1a1a3e', '#0f0f2e', '#050515'];
+            
+            if (gameState.phase === 'intense') {
+                bgColors = ['#2a2a4e', '#1a1a3e', '#0a0a1a'];
+            } else if (gameState.phase === 'final') {
+                bgColors = ['#4a1a1a', '#3a0a0a', '#2a0505'];
+            }
+            
+            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.max(canvas.width, canvas.height));
+            gradient.addColorStop(0, bgColors[0]);
+            gradient.addColorStop(0.5, bgColors[1]);
+            gradient.addColorStop(1, bgColors[2]);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 风暴粒子
+            const particleCount = 60 * gameState.stormIntensity;
+            ctx.fillStyle = `rgba(${gameState.phase === 'calm' ? '100, 100, 150' : '150, 100, 100'}, 0.3)`;
+            for (let i = 0; i < particleCount; i++) {
+                const x = (Math.sin(Date.now() / 1000 + i) * 0.5 + 0.5) * canvas.width;
+                const y = (Math.cos(Date.now() / 1500 + i * 1.5) * 0.5 + 0.5) * canvas.height;
+                const size = Math.random() * 4;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 闪电效果
+            if (Math.random() < 0.015 * gameState.stormIntensity) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                let lx = Math.random() * canvas.width;
+                let ly = 0;
+                ctx.moveTo(lx, ly);
+                while (ly < canvas.height) {
+                    lx += (Math.random() - 0.5) * 120;
+                    ly += Math.random() * 60 + 25;
+                    ctx.lineTo(lx, ly);
+                }
+                ctx.stroke();
+            }
+            
+            // 最终阶段绘制魔王形象
+            if (gameState.phase === 'final') {
+                drawDemonLord();
+            }
+            
+            ctx.restore();
+        }
+
+        // 绘制魔王形象
+        function drawDemonLord() {
+            const demonX = canvas.width * 0.85;
+            const demonY = canvas.height * 0.25;
+            const scale = Math.min(canvas.width, canvas.height) * 0.0008;
+            
+            ctx.save();
+            ctx.translate(demonX, demonY);
+            ctx.scale(scale, scale);
+            
+            // 魔王身体发光效果
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 50;
+            
+            // 魔王身体（三角形）
+            ctx.fillStyle = '#2a0000';
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, -150);
+            ctx.lineTo(80, 100);
+            ctx.lineTo(-80, 100);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // 魔王头部（圆形）
+            ctx.fillStyle = '#1a0000';
+            ctx.beginPath();
+            ctx.arc(0, -120, 50, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // 魔王角
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.moveTo(-30, -150);
+            ctx.lineTo(-50, -220);
+            ctx.lineTo(-10, -160);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(30, -150);
+            ctx.lineTo(50, -220);
+            ctx.lineTo(10, -160);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 魔王眼睛（发光）
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 30;
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(-20, -120, 12, 0, Math.PI * 2);
+            ctx.arc(20, -120, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 眼睛瞳孔
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(-20, -120, 5, 0, Math.PI * 2);
+            ctx.arc(20, -120, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 魔王嘴巴（锯齿状）
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.moveTo(-25, -100);
+            ctx.lineTo(-15, -90);
+            ctx.lineTo(-5, -100);
+            ctx.lineTo(5, -90);
+            ctx.lineTo(15, -100);
+            ctx.lineTo(25, -90);
+            ctx.lineTo(20, -80);
+            ctx.lineTo(-20, -80);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 魔王手臂
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(-70, -20);
+            ctx.lineTo(-120, 50);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(70, -20);
+            ctx.lineTo(120, 50);
+            ctx.stroke();
+            
+            // 魔王爪子
+            ctx.fillStyle = '#ff0000';
+            for (let i = -1; i <= 1; i++) {
+                ctx.beginPath();
+                ctx.arc(-120 + i * 10, 55, 8, 0, Math.PI * 2);
+                ctx.arc(120 + i * 10, 55, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 魔王翅膀（轮廓）
+            ctx.strokeStyle = '#aa0000';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(-60, -80);
+            ctx.quadraticCurveTo(-150, -150, -180, -50);
+            ctx.quadraticCurveTo(-150, 0, -80, 20);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(60, -80);
+            ctx.quadraticCurveTo(150, -150, 180, -50);
+            ctx.quadraticCurveTo(150, 0, 80, 20);
+            ctx.stroke();
+            
+            // 魔王周围能量粒子
+            ctx.shadowBlur = 20;
+            for (let i = 0; i < 8; i++) {
+                const angle = (Date.now() / 1000 + i * 0.8) % (Math.PI * 2);
+                const radius = 120 + Math.sin(Date.now() / 500 + i) * 20;
+                const px = Math.cos(angle) * radius;
+                const py = Math.sin(angle) * radius * 0.5;
+                
+                ctx.fillStyle = `rgba(255, 0, 0, ${0.5 + Math.sin(Date.now() / 300 + i) * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(px, py, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+        }
+
+        // 生成信号波
+        function spawnWave() {
+            const now = Date.now();
+            let spawnRate = Math.max(600, CONFIG.waveSpawnRate - (gameState.level - 1) * 200);
+            
+            // 根据阶段调整生成速率（降低难度）
+            if (gameState.phase === 'intense') spawnRate *= 0.85;
+            else if (gameState.phase === 'final') spawnRate *= 0.7;
+            
+            if (now - gameState.lastSpawnTime > spawnRate) {
+                // 最终阶段偶尔同时生成两个信号波
+                if (gameState.phase === 'final' && Math.random() < 0.25) {
+                    const side1 = Math.floor(Math.random() * 4);
+                    let side2 = Math.floor(Math.random() * 4);
+                    while (side2 === side1) side2 = Math.floor(Math.random() * 4);
+                    
+                    gameState.waves.push(new Wave(null, side1));
+                    gameState.waves.push(new Wave(null, side2));
+                } else {
+                    gameState.waves.push(new Wave());
+                }
+                
+                gameState.lastSpawnTime = now;
+            }
+        }
+
+        // 检查阶段转换
+        function checkPhase() {
+            const score = gameState.score;
+            
+            // 0-150分：平静期
+            if (score < 150 && gameState.phase !== 'calm') {
+                gameState.phase = 'calm';
+                document.getElementById('phaseIndicator').textContent = '平静期';
+            }
+            // 150分：风暴加剧
+            else if (score >= 150 && score < 400 && gameState.phase === 'calm') {
+                gameState.phase = 'intense';
+                gameState.unlockedColors.push('yellow');
+                gameState.stormIntensity = 1.8;
+                document.getElementById('phaseIndicator').textContent = '风暴加剧';
+                document.getElementById('hintD').classList.remove('locked');
+                document.getElementById('keyYellow').style.opacity = '1';
+                document.getElementById('chaosOverlay').classList.add('active');
+                
+                showLevelUpAlert('⚠ 风暴加剧 ⚠');
+                showInGameDialogue('塔灵 TIA', '风暴正在加强！保持专注，你做得很好！');
+                playSound('levelUp');
+            }
+            // 400分：最终决战
+            else if (score >= 400 && gameState.phase !== 'final') {
+                gameState.phase = 'final';
+                gameState.unlockedColors.push('purple');
+                gameState.stormIntensity = 2.2;
+                document.getElementById('phaseIndicator').textContent = '最终决战';
+                document.getElementById('hintSpace').classList.remove('locked');
+                document.getElementById('keyPurple').style.opacity = '1';
+                
+                showLevelUpAlert('⚠ 最终决战 ⚠');
+                showTiaHint('紫色信号波已解锁！按空格键消除！');
+                
+                if (!gameState.dialogueShown.final) {
+                    gameState.dialogueShown.final = true;
+                    setTimeout(() => {
+                        showInGameDialogue('混沌之主', '这就是你的极限了吗？让我结束这一切！', true);
+                        playSound('chaos');
+                        
+                        setTimeout(() => {
+                            showInGameDialogue('塔灵 TIA', '守护者，相信你自己。最后的冲刺！');
+                        }, 4500);
+                    }, 1000);
+                }
+                
+                // 生命值低时闪烁警告
+                if (gameState.lives <= 2) {
+                    document.querySelectorAll('.life:not(.lost)').forEach(life => {
+                        life.classList.add('warning');
+                    });
+                }
+            }
+        }
+
+        // 显示升级提示
+        function showLevelUpAlert(text) {
+            const alert = document.getElementById('levelUpAlert');
+            alert.textContent = text;
+            alert.classList.add('show');
+            setTimeout(() => alert.classList.remove('show'), 2500);
+        }
+
+        // 检查按键
+        function checkKeyInput(key) {
+            const color = CONFIG.keys[key.toLowerCase()];
+            if (!color || !gameState.unlockedColors.includes(color)) return;
+            
+            // 显示按键反馈
+            const hintMap = { 'red': 'hintW', 'green': 'hintA', 'blue': 'hintS', 'yellow': 'hintD', 'purple': 'hintSpace' };
+            const hintEl = document.getElementById(hintMap[color]);
+            if (hintEl) {
+                hintEl.classList.add('active');
+                setTimeout(() => hintEl.classList.remove('active'), 100);
+            }
+            
+            // 查找最近的匹配颜色的信号波
+            let closestWave = null;
+            let closestDistance = Infinity;
+            
+            for (let i = 0; i < gameState.waves.length; i++) {
+                const wave = gameState.waves[i];
+                if (wave.color === color) {
+                    const dx = wave.x - centerX;
+                    const dy = wave.y - centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < closestDistance && distance < 180) {
+                        closestDistance = distance;
+                        closestWave = i;
+                    }
+                }
+            }
+            
+            if (closestWave !== null) {
+                // 成功消除
+                const wave = gameState.waves[closestWave];
+                createExplosion(wave.x, wave.y, wave.color);
+                gameState.waves.splice(closestWave, 1);
+                
+                // 更新分数和连击
+                gameState.combo++;
+                gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
+                const points = 10 * (1 + Math.floor(gameState.combo / 5) * 0.5);
+                gameState.score += Math.floor(points);
+                
+                // 信号塔发光
+                gameState.towerGlow = 1;
+                
+                // 播放音效
+                playSound(gameState.combo > 5 ? 'combo' : 'hit');
+                
+                // TIA鼓励
+                if (gameState.combo === 5) {
+                    showTiaHint('很好，保持节奏！');
+                } else if (gameState.combo === 15) {
+                    showTiaHint('你比我想象的更强大，守护者！');
+                } else if (gameState.combo === 30) {
+                    showTiaHint('不可思议！你的反应速度在提升！');
+                }
+                
+                // 检查阶段
+                checkPhase();
+                
+                // 更新UI
+                updateUI();
+                
+                // 检查隐藏胜利条件
+                if (gameState.score >= 800 && !gameState.isVictory) {
+                    triggerVictory();
+                }
+            } else {
+                // 错误按键，重置连击
+                gameState.combo = 0;
+                updateUI();
+            }
+        }
+
+        // 触发隐藏胜利结局
+        function triggerVictory() {
+            gameState.isVictory = true;
+            gameState.isPlaying = false;
+            
+            // 保存特殊称号
+            const titles = JSON.parse(localStorage.getItem('signalTowerTitles') || '[]');
+            if (!titles.includes('风暴征服者')) {
+                titles.push('风暴征服者');
+                localStorage.setItem('signalTowerTitles', JSON.stringify(titles));
+            }
+            
+            playSound('victory');
+            
+            // 显示胜利画面
+            document.getElementById('victoryScreen').classList.add('show');
+        }
+
+        // 更新UI
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('comboCount').textContent = gameState.combo;
+            
+            // 更新连击显示
+            const comboDisplay = document.getElementById('comboDisplay');
+            if (gameState.combo > 1) {
+                comboDisplay.classList.add('show');
+            } else {
+                comboDisplay.classList.remove('show');
+            }
+            
+            // 更新生命值
+            for (let i = 1; i <= 3; i++) {
+                const life = document.getElementById(`life${i}`);
+                if (i > gameState.lives) {
+                    life.classList.add('lost');
+                    life.classList.remove('warning');
+                } else {
+                    life.classList.remove('lost');
+                }
+            }
+        }
+
+        // 游戏结束
+        function gameOver() {
+            gameState.isPlaying = false;
+            
+            // 保存最高分
+            const highScore = localStorage.getItem('signalTowerHighScore') || 0;
+            const isNewRecord = gameState.score > highScore;
+            
+            if (isNewRecord) {
+                localStorage.setItem('signalTowerHighScore', gameState.score);
+            }
+            
+            // 显示结束界面
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('maxCombo').textContent = gameState.maxCombo;
+            document.getElementById('highScore').textContent = Math.max(highScore, gameState.score);
+            
+            const recordMessage = document.getElementById('recordMessage');
+            const gameOverTitle = document.getElementById('gameOverTitle');
+            
+            // 根据得分显示不同结局文本
+            if (gameState.score < 100) {
+                recordMessage.innerHTML = '信号塔……离线了。<br>但数字世界不会忘记你的勇气。<br>守护者，请再次尝试，重新点亮信号塔。';
+            } else if (gameState.score < 300) {
+                recordMessage.innerHTML = '你抵抗了第一波风暴，但混沌之主太过强大。<br>不要放弃，守护者！';
+            } else if (gameState.score < 500) {
+                recordMessage.innerHTML = '你展现了非凡的实力！<br>再试一次，也许你能彻底击败混沌之主！';
+            } else {
+                recordMessage.innerHTML = '你几乎做到了！<br>就差一点点就能净化混沌风暴！<br>再次挑战，成为真正的传说！';
+            }
+            
+            if (isNewRecord) {
+                gameOverTitle.innerHTML = '🎉 新纪录！ 🎉';
+                gameOverTitle.style.color = '#ffff44';
+            }
+            
+            document.getElementById('gameOverScreen').classList.add('show');
+        }
+
+        // 游戏主循环
+        function gameLoop() {
+            if (!gameState.isPlaying) return;
+            
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 应用屏幕震动
+            ctx.save();
+            if (gameState.shakeAmount > 0) {
+                const shakeX = (Math.random() - 0.5) * gameState.shakeAmount;
+                const shakeY = (Math.random() - 0.5) * gameState.shakeAmount;
+                ctx.translate(shakeX, shakeY);
+                gameState.shakeAmount *= 0.9;
+                if (gameState.shakeAmount < 0.5) gameState.shakeAmount = 0;
+            }
+            
+            // 绘制背景
+            drawStorm();
+            
+            // 生成新信号波
+            spawnWave();
+            
+            // 更新和绘制信号波
+            for (let i = gameState.waves.length - 1; i >= 0; i--) {
+                const wave = gameState.waves[i];
+                const stillAlive = wave.update();
+                
+                if (!stillAlive) {
+                    // 信号波到达塔，扣除生命
+                    gameState.lives--;
+                    gameState.combo = 0;
+                    gameState.shakeAmount = 25;
+                    playSound('miss');
+                    updateUI();
+                    
+                    if (gameState.lives <= 0) {
+                        gameOver();
+                        ctx.restore();
+                        return;
+                    }
+                    
+                    gameState.waves.splice(i, 1);
+                } else {
+                    wave.draw();
+                }
+            }
+            
+            // 更新和绘制粒子
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const particle = gameState.particles[i];
+                const stillAlive = particle.update();
+                
+                if (!stillAlive) {
+                    gameState.particles.splice(i, 1);
+                } else {
+                    particle.draw();
+                }
+            }
+            
+            // 绘制信号塔
+            drawTower();
+            
+            ctx.restore();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 开始游戏
+        function startGame() {
+            initAudio();
+            
+            // 重置游戏状态
+            gameState = {
+                isPlaying: true,
+                score: 0,
+                lives: 3,
+                combo: 0,
+                maxCombo: 0,
+                level: 1,
+                phase: 'calm',
+                waves: [],
+                particles: [],
+                lastSpawnTime: 0,
+                towerGlow: 0,
+                shakeAmount: 0,
+                stormIntensity: 1,
+                unlockedColors: ['red', 'green', 'blue'],
+                dialogueShown: {},
+                isVictory: false
+            };
+            
+            // 重置UI
+            document.getElementById('phaseIndicator').textContent = '平静期';
+            document.getElementById('hintD').classList.add('locked');
+            document.getElementById('hintSpace').classList.add('locked');
+            document.getElementById('chaosOverlay').classList.remove('active');
+            
+            // 隐藏开始界面
+            document.getElementById('startScreen').classList.remove('show');
+            document.getElementById('gameOverScreen').classList.remove('show');
+            document.getElementById('victoryScreen').classList.remove('show');
+            
+            updateUI();
+            
+            // 显示初始提示
+            setTimeout(() => {
+                showTiaHint('按 W/A/S 消除对应颜色的信号波！');
+            }, 1000);
+            
+            gameLoop();
+        }
+
+        // 重新开始
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            document.getElementById('victoryScreen').classList.remove('show');
+            startGame();
+        }
+
+        // 返回主菜单
+        function returnToMenu() {
+            document.getElementById('gameOverScreen').classList.remove('show');
+            document.getElementById('victoryScreen').classList.remove('show');
+            document.getElementById('startScreen').classList.add('show');
+        }
+
+        // 键盘事件监听
+        document.addEventListener('keydown', (e) => {
+            if (gameState.isPlaying) {
+                checkKeyInput(e.key);
+            }
+        });
+
+        // 防止空格键滚动页面
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ') {
+                e.preventDefault();
+            }
+        });
+
+        // 初始化剧情
+        window.onload = () => {
+            nextStory();
+        };
+    </script>
+</body>
+</html>
